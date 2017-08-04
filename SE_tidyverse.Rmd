@@ -1,0 +1,118 @@
+Standard Evaluation
+===================
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(wrapr)
+library(rlang)
+```
+
+I would like to be able to pass column names to tidyverse (or even
+non-tidyverse) subsetting/filtering functions in a way that is clean and
+aesthetically pleasing. Ideally, I would like to get away with not quoting
+things that are not the column name.
+
+Data
+----
+
+```{r}
+keep = LETTERS[5:15]
+
+df = data.frame(alphabet = LETTERS,count = rep(10,26))
+```
+
+Stuff
+-----
+
+The goal is to get a non-non-standard way of doing this:
+
+```{r}
+df %>% filter(alphabet %in% keep)
+```
+
+This works, but is unsatisfying:
+
+```{r}
+df %>% filter(eval(parse(text = paste(col,'%in% keep'))))
+```
+
+You can just give `filter_()` a string, but the docs say it's deprecated.
+
+```{r}
+df %>% filter_(paste(col,'%in% keep'))
+```
+
+For practical purposes, that's probably the right answer, but I'd prefer an 
+answer that didn't require me to either use a deprecated function, or to put 
+things that are actually symbols (`%in%`, `keep`) in a string.
+
+Tidyverse apparently provides functions for this purpose, including `enquo()`,
+`quo()`, `let()`, and `sym()`, but I don't understand them. There's a discussion
+[here](https://github.com/tidyverse/rlang/issues/116).
+
+
+The first suggestion there is to use `!! sym(var)`, but that does not appear to
+work for my purposes. 
+
+```{r}
+df %>% filter(!! sym(paste(col,'%in% keep')))
+```
+
+That error is reasonably straighforward, and might lead one to believe that this
+will work:
+
+```{r}
+df %>% filter(!! sym(col) %in% keep)
+```
+
+But it doesn't. I have a hypothesis as to why, but I don't know how to fix it. 
+I _think_ that it's treating the contents of `col`, "alphabet" as an object
+`alphabet`, but failing to understand that it's a column in the data frame. 
+FWIW, this is exactly why I object to NSE in the first place. But I could also 
+be wrong about what the error means. It's worth noting that the examples on
+the linked page don't require a comparison statement, and they _do_ work:
+
+```{r}
+df %>% select(!! sym(col))
+```
+
+So the problem is with the comparison statement itself, not the tidyverse 
+functions. I'm guessing something about scope when `!! sym(col)` gets evaluated?
+
+Anyway. Onward.
+
+I also found [this vignette](dplyr.tidyverse.org/articles/programming.html).
+
+```{r}
+v = quo(col)
+df %>% filter(UQ(v) %in% keep)
+```
+
+That doesn't work, but let's look at v
+
+```{r}
+v
+```
+
+So the problem here is clearly that it's quoting my variable name. Useless.
+
+```{r}
+v = sym(col)
+df %>% filter(UQ(v) %in% keep)
+```
+
+Solved it! First you cast the contents of `col` to a symbol with `sym`, then you
+unquote it using `UQ()` instead of `!!` because you don't want `filter()` doing
+anything else with those bangs.
+
+Presumably you don't need the intermediate variable.
+
+```{r}
+df %>% filter(UQ(sym(col)) %in% keep)
+```
+
+So that's how it's done, and I learned something new, but also that is bullshit.
+Treating column names like the strings they are should be trivially easy, not
+a thing that requires calls to two obscure functions that took me an hour and a
+half to find and (sort of) understand.
