@@ -1,0 +1,74 @@
+PCA with Biplots
+================
+
+There are various packages that allow you to make PCA biplots more 
+automatically, but I want to do it manually because it gives me a lot more 
+control. If you want the automatic versions, the places to look are in 
+`ggbiplot` and `ggfortify`.
+
+Setup
+```{r}
+library(datasets)	# We're going to use the iris dataset
+library(ggplot2)
+```
+
+Ordinate
+
+```{r}
+pca = prcomp(iris[,1:4],scale = TRUE, center = TRUE) # think about scale and center
+```
+
+Set up data frames for plotting
+
+```{r}
+# Choose which axes to plot
+x = 'PC1'
+y = 'PC2'
+
+# Put the principal components into a data frame
+pca_df = data.frame(pca$x,    # The principal components
+					Species = iris$Species)  # Group names
+rownames(pca_df) = rownames(iris)
+
+# Make a data frame with the loadings
+loads = data.frame(varnames = rownames(pca$rotation), # the variables
+				   pca$rotation)	# Some data about their loadings
+
+# Scale the loadings (I don't fully understand this part)
+mult = min(
+	(max(pca_df[,y]) - min(pca_df[,y]))/(max(loads[,y]) - min(loads[,y])),
+	(max(pca_df[,x]) - min(pca_df[,x]))/(max(loads[,x]) - min(loads[,x]))
+)
+loads = transform(loads,
+				  v1 = 0.7 * mult * (get(x)),
+				  v2 = 0.7 * mult * (get(y)))
+
+# Choose which variables' loadings you actually want to see. I'll pick the
+# top 2 for now. This is more useful when there are lots of variables.
+load_use = loads[1:2,]
+
+# Get the percent variation explained by each PC
+s = summary(pca)
+pcx_exp = s$importance[2,x]
+pcy_exp = s$importance[2,y]
+xlab = paste(x,as.character(round(pcx_exp,3)))
+ylab = paste(y,as.character(round(pcy_exp,3)))
+
+# Plot it
+p = ggplot(pca_df, aes_string(x = x, y = y)) +
+	geom_point(alpha = 0.6, # plot points & colour by grouping
+			   aes(colour = Species)) + 
+	coord_equal() + # force the axes to have the same scale
+	geom_text(data = load_use, # Add the biplot arrow labels:
+			  aes(x = v1, y = v2, label = varnames), # required
+			  size = 3,
+			  vjust = -1,
+			  colour = 'grey35') + # play with these freely
+	geom_segment(data = load_use, # Add the biplot arrows:
+				 aes(x = 0, y = 0, xend = v1, yend = v2), # required
+				 arrow = arrow(length = unit(0.2,'cm')),
+				 alpha = .75,
+				 colour = 'red') + # play with these freely
+	labs(x = xlab,y = ylab)
+p
+```
