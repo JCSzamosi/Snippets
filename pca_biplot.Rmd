@@ -26,25 +26,26 @@ x = 'PC1'
 y = 'PC2'
 
 # Put the principal components into a data frame
-pca_df = data.frame(pca$x,    # The principal components
-					Species = iris$Species)  # Group names
+pca_df = data.frame(pca$x,	# The principal components
+					Species = iris$Species)	# Group names
 rownames(pca_df) = rownames(iris)
 
 # Make a data frame with the loadings
 loads = data.frame(varnames = rownames(pca$rotation), # the variables
-				   pca$rotation)	# Some data about their loadings
+					pca$rotation)	# Some data about their loadings
 
-# Scale the loadings (I don't fully understand this part)
+# Scale the loadings (I don't really understand this part)
 mult = min(
 	(max(pca_df[,y]) - min(pca_df[,y]))/(max(loads[,y]) - min(loads[,y])),
 	(max(pca_df[,x]) - min(pca_df[,x]))/(max(loads[,x]) - min(loads[,x]))
 )
 loads = transform(loads,
-				  v1 = 0.7 * mult * (get(x)),
-				  v2 = 0.7 * mult * (get(y)))
+					v1 = 0.7 * mult * (get(x)),
+					v2 = 0.7 * mult * (get(y)))
 
 # Choose which variables' loadings you actually want to see. I'll pick the
-# top 2 for now. This is more useful when there are lots of variables.
+# top 2 for now. This is more useful when there are lots of variables to narrow
+# down.
 load_use = loads[1:2,]
 
 # Get the percent variation explained by each PC
@@ -56,19 +57,27 @@ ylab = paste(y,as.character(round(pcy_exp,3)))
 
 # Plot it
 p = ggplot(pca_df, aes_string(x = x, y = y)) +
-	geom_point(alpha = 0.6, # plot points & colour by grouping
-			   aes(colour = Species)) + 
+
+	# plot points & colour by grouping
+	geom_point(alpha = 0.6,aes(colour = Species)) + 
+
 	coord_equal() + # force the axes to have the same scale
-	geom_text(data = load_use, # Add the biplot arrow labels:
-			  aes(x = v1, y = v2, label = varnames), # required
-			  size = 3,
-			  vjust = -1,
-			  colour = 'grey35') + # play with these freely
-	geom_segment(data = load_use, # Add the biplot arrows:
-				 aes(x = 0, y = 0, xend = v1, yend = v2), # required
-				 arrow = arrow(length = unit(0.2,'cm')),
-				 alpha = .75,
-				 colour = 'red') + # play with these freely
+
+	# Add the biplot arrow labels:
+	geom_text(data = load_use,
+				aes(x = v1, y = v2, label = varnames), # required
+				# play with these freely
+				size = 3,
+				vjust = -1,
+				colour = 'grey35') + 
+
+	# Add the biplot arrows:
+	geom_segment(data = load_use, 
+				aes(x = 0, y = 0, xend = v1, yend = v2), # required
+				# play with these freely
+				arrow = arrow(length = unit(0.2,'cm')),
+				alpha = .75,
+				colour = 'red') + 
 	labs(x = xlab,y = ylab)
 p
 ```
