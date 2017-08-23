@@ -1,0 +1,117 @@
+Doing a GLMM when your (fixed effects) levels have unequal variances
+====================================================================
+
+```{r}
+library(lmerTest)
+library(ggplot2)
+```
+
+### Data
+
+Simulate data.
+
+```{r}
+# There are three levels in my fixed effect
+groups = c('A','B','C')
+
+# Each level has its own mean
+means = rep(c(100,150,200), each = 10)
+
+# Levels' standard deviations vary wildly
+sds = rep(c(4,65,70), each = 10)
+
+# Individuals are nested within group, and each is present twice
+indivs = rep(1:15,each = 2)
+
+# The effect of individual on mean
+re = rnorm(15,5,5)
+means = means + rep(re,each = 2)
+
+# Simulate the data
+df = data.frame(GroupID = rep(groups, each = 10),
+				Meas = rnorm(30,mean = means, sd = sds),
+				Indiv = factor(indivs))
+```
+
+Look at it
+
+```{r}
+p = ggplot(df, aes(x = GroupID, y = Meas)) +
+	geom_boxplot()
+p
+```
+
+### Model
+
+No accounting for unequal variances
+
+```{r}
+m1 = lmer(Meas ~ GroupID + (1|Indiv),df)
+```
+
+Account for unequal variances
+
+```{r}
+# Set up dummy variables for the two groups
+df$DM1 = factor(ifelse(df$GroupID == 'B',1,0))
+df$DM2 = factor(ifelse(df$GroupID == 'C',1,0))
+
+# model
+m2 = lmer(Meas ~ GroupID + (1|Indiv) + (1|DM1) + (1|DM2),df)
+
+# look
+summary(m1)
+summary(m2)
+```
+
+### Predicted vs. Residuals
+
+```{r}
+# First Model
+preddf1 = expand.grid(GroupID = groups)
+preddf1$Meas = predict(m1,preddf1,re.form=NA)
+mm1 = model.matrix(terms(m1),preddf1)
+pvar1 = diag(mm1 %*% tcrossprod(vcov(m1),mm1))
+tvar1 = pvar1 + VarCorr(m1)$Indiv[1]
+cmult = 1.96
+preddf1 = data.frame(preddf1,
+					 plo = preddf1$Meas - cmult*sqrt(pvar1),
+					 phi = preddf1$Meas + cmult*sqrt(pvar1),
+					 tlo = preddf1$Meas - cmult*sqrt(tvar1),
+					 thi = preddf1$Meas + cmult*sqrt(tvar1))
+preddf1
+
+# Second Model
+preddf2 = expand.grid(GroupID = groups)
+preddf2$Meas = predict(m2,preddf2,re.form=NA)
+mm2 = model.matrix(terms(m2),preddf2)
+pvar2 = diag(mm2 %*% tcrossprod(vcov(m2),mm2))
+tvar2 = pvar2 + VarCorr(m2)$Indiv[1]
+cmult = 1.96
+preddf2 = data.frame(preddf2,
+					 plo = preddf2$Meas - cmult*sqrt(pvar2),
+					 phi = preddf2$Meas + cmult*sqrt(pvar2),
+					 tlo = preddf2$Meas - cmult*sqrt(tvar2),
+					 thi = preddf2$Meas + cmult*sqrt(tvar2))
+preddf2
+```
+
+These are identical. That seems correct.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

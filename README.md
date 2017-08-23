@@ -14,3 +14,5 @@ Snippets
 	* Making biplots from scratch is worth doing because it gives you total
 	flexibility to colour your points and choose which loadings to display, but
 	it's a pain. Here's an example.
+* [unequal_variance_glmm.Rmd](./unequal_variance_glmm.Rmd)
+	* Accounting for unequal variance in groups in a mixed-effects model.
