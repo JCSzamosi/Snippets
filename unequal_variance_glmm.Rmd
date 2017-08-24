@@ -56,8 +56,21 @@ Account for unequal variances
 df$DM1 = factor(ifelse(df$GroupID == 'B',1,0))
 df$DM2 = factor(ifelse(df$GroupID == 'C',1,0))
 
+# (equivalently:)
+df$DM1 = dummy(df$GroupID,"B")
+df$DM2 = dummy(df$GroupID,"C")
+
+df$obs = factor(seq(nrow(df)))
+
+
 # model
-m2 = lmer(Meas ~ GroupID + (1|Indiv) + (1|DM1) + (1|DM2),df)
+m2 = lmer(Meas ~ GroupID + (1|Indiv) + 
+			## Deal with residual variance in B and C
+			(0 + DM1|obs) + (0 + DM2|obs),
+			df,
+			## Stop lmer complaining
+			control=lmerControl(check.nobs.vs.nRE="ignore",
+								check.nobs.vs.nlev="ignore"))
 
 # look
 summary(m1)
@@ -83,7 +96,7 @@ preddf1
 
 # Second Model
 preddf2 = expand.grid(GroupID = groups)
-preddf2$Meas = predict(m2,preddf2,re.form=NA)
+
 mm2 = model.matrix(terms(m2),preddf2)
 pvar2 = diag(mm2 %*% tcrossprod(vcov(m2),mm2))
 tvar2 = pvar2 + VarCorr(m2)$Indiv[1]
