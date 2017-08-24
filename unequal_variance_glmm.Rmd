@@ -4,6 +4,8 @@ Doing a GLMM when your (fixed effects) levels have unequal variances
 ```{r}
 library(lmerTest)
 library(ggplot2)
+library(tidyr)
+library(dplyr)
 ```
 
 ### Data
@@ -92,11 +94,10 @@ preddf1 = data.frame(preddf1,
 					 phi = preddf1$Meas + cmult*sqrt(pvar1),
 					 tlo = preddf1$Meas - cmult*sqrt(tvar1),
 					 thi = preddf1$Meas + cmult*sqrt(tvar1))
-preddf1
 
 # Second Model
 preddf2 = expand.grid(GroupID = groups)
-
+preddf2$Meas = predict(m2,preddf2,re.form=NA)
 mm2 = model.matrix(terms(m2),preddf2)
 pvar2 = diag(mm2 %*% tcrossprod(vcov(m2),mm2))
 tvar2 = pvar2 + VarCorr(m2)$Indiv[1]
@@ -106,10 +107,85 @@ preddf2 = data.frame(preddf2,
 					 phi = preddf2$Meas + cmult*sqrt(pvar2),
 					 tlo = preddf2$Meas - cmult*sqrt(tvar2),
 					 thi = preddf2$Meas + cmult*sqrt(tvar2))
+preddf1
 preddf2
 ```
 
-These are identical. That seems correct.
+Plot it
+
+```{r}
+p1 = ggplot(df, aes(x = GroupID, y = Meas)) +
+	geom_boxplot(width = 0.6, position = position_dodge(width = 0.75)) +
+	geom_linerange(data = preddf1, 
+				   mapping = aes(x = GroupID,
+				   					ymin = tlo,
+				   			  		ymax = thi),
+					inherit.aes = FALSE,
+					position = position_dodge(width = 0.75),
+					size = 2.5,
+					colour = 'red',
+					alpha = 0.3) +
+	geom_point(data = preddf1,
+				mapping = aes(x = GroupID,
+								y = Meas),
+				position = position_dodge(width = 0.75),
+				size = 2.5,
+				alpha = 0.7,
+				colour = 'red')
+p1
+
+p2 = ggplot(df, aes(x = GroupID, y = Meas)) +
+	geom_boxplot(width = 0.6, position = position_dodge(width = 0.75)) +
+	geom_linerange(data = preddf2, 
+				   mapping = aes(x = GroupID,
+				   					ymin = tlo,
+				   			  		ymax = thi),
+					inherit.aes = FALSE,
+					position = position_dodge(width = 0.75),
+					size = 2.5,
+					colour = 'red',
+					alpha = 0.3) +
+	geom_point(data = preddf2,
+				mapping = aes(x = GroupID,
+								y = Meas),
+				position = position_dodge(width = 0.75),
+				size = 2.5,
+				alpha = 0.7,
+				colour = 'red')
+p2
+```
+
+Predicted vs. Residuals
+
+```{r}
+predred1 = data.frame(Predicted = predict(m1),
+					  Residuals = resid(m1))
+predred1 = data.frame(predred1,df)
+
+p1 = ggplot(predred1, aes(x = Predicted, y = Residuals, colour = GroupID)) +
+	geom_point() 
+
+p1
+
+predred2 = data.frame(Predicted = predict(m2),
+					  Residuals = resid(m2))
+predred2 = data.frame(predred2,df)
+
+p2 = ggplot(predred2, aes(x = Predicted, y = Residuals, colour = GroupID)) +
+	geom_point() 
+
+p2
+
+predred = rbind(predred1,predred2)
+predred$Model = rep(c('m1','m2'), each = nrow(predred1))
+
+p = ggplot(predred, aes(x = Predicted, y = Residuals,
+						shape = Model, colour = GroupID)) + geom_point()
+p
+
+predred %>% group_by(GroupID,Model) %>%
+	summarize(Mean = mean(Predicted))
+```
 
 
 
