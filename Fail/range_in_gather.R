@@ -1,5 +1,6 @@
 # Make the data set
 
+library(tidyr)
 dat = data.frame(Genus = 'Escherichia',
 					SP1 = rep(10,10),
 					SP2 = rep(5,10),
@@ -17,3 +18,5 @@ dat %>% gather(Species,Count,st:ncol(dat)) -> dat_long
 
 st = 1
 dat %>% gather(Species,Count,(st+1):ncol(dat)) -> dat_long
+
+sessionInfo()
