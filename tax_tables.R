@@ -2,13 +2,10 @@ remain = function(x){
 	1-sum(x)
 }
 
-tax_bar = function(phyl_rel, rank, cutoff, colours=NULL,){
+taxa_other_df = function(phyl_rel, rank, cutoff){
 	## phyl_rel:relative abundance phyloseq object
 	## rank:	taxonomic rank to glom to
 	## cutoff:	proportion below which things get called 'other'
-	## colours: a character vector with the right number of hex values. If null,
-	## uses a 21-value vector selected by k-means clustering.
-	## assumes the sample ID column is SampleID
 
 	require(phyloseq)
 	require(dplyr)
@@ -23,39 +20,42 @@ tax_bar = function(phyl_rel, rank, cutoff, colours=NULL,){
 	phyl_glommed %>%
 		filter_taxa(function(x) sum(x) > 0, prune = TRUE) %>%
 		psmelt() %>%
-		arrange(Family) -> abunds
+		arrange_(rank) -> abunds
 
-## Remove the unneeded columns (This you're going to want to play with
-## The idea is to separate out the taxonomy columns (everything after (and
-## including) Rank1) so that you can set them all to 'Other'
-
-## I just didn't want these columns any more
-# lose = c('OTU','X.SampleID','BarcodeSequence',
-#	'LinkerPrimerSequence','Description')
-
-## Keep all the ones I still want
-#keep = colnames(abunds)[!(colnames(abunds) %in% lose)]
-#abunds = abunds[,keep]
-
-## Divide the columns into sample metadata (up to Rank1)
-#metacols = keep[c(1,3:11)]
-
-## and taxonomy metadata (Rank1, Phylum, Class, etc)
-#taxcols = keep[12:16]
-
+	# List all the metadata columns so that they are included in the data frame
+	metacols = names(abunds)[4:(match('Rank1',names(abunds))-1)]
 	# Make an 'Other' row for each sample
-	abunds %>% 
-		group_by(SampleID) %>%
+	abunds %>%
+		group_by_(.dots = metacols) %>%
 		summarize(Abundance=remain(Abundance)) -> others
-	others[taxcols] = 'Other'		HANDLE TAXCOLS HERE
+
+	# Add in the taxonomic data columns
+	taxcols = names(abunds)[match('Rank1',names(abunds)):ncol(abunds)]
+	others[taxcols] = 'Other'
 
 	# Combine the 'Other' data frame with the original
-	abunds = rbind(as.data.frame(others),
-				as.data.frame(abunds))
-	abunds[,rank] = factor(abunds[,rank], levels = unique(abunds[,rank]))
+	newdf = abunds[,metacols]
+	newdf$Abundance = abunds$Abundance
+	newdf[,taxcols] = abunds[,taxcols]
+	newdf = rbind(as.data.frame(others),
+				as.data.frame(newdf))
+	newdf[,rank] = factor(newdf[,rank], levels = unique(newdf[,rank]))
+
+	return(newdf)
+
+}
 
 
-	# Plot
+taxa_plot = function(taxa_df,rank,colours = NULL,meta = NULL,
+					 sample = 'X.SampleID', abund = 'Abundance'){
+	## taxa_df:	The data frame produced by taxa_other_df()
+	## rank: The taxonomic rank to plot by
+	## colours:	A character vector with the right number of colours. If you
+	## don't provide one it uses my 21-colour vector, which might not be enough
+	## meta: a character vector of metadata columns to order the bars by. If
+	## left NULL, the bars will be ordered alphabetically by sample ID.
+	## sample: the name of the sample ID column.
+	## abund: the name of the abundance column
 
 	# Pick colours
 	if (is.null(colours)){
@@ -66,28 +66,17 @@ tax_bar = function(phyl_rel, rank, cutoff, colours=NULL,){
 	}
 
 	# Plot individual samples
-	abunds = arrange(abunds, PatientID, Family)
-indiv = ggplot(abunds, aes(x = Sample, y = Abundance, fill = Family)) +
+	if (!is.null(meta)){
+		taxa_df %>%
+			arrange_(meta) -> taxa_df
+	}
+
+	indiv = ggplot(taxa_df, aes_string(x = sample, y = abund, fill = rank)) +
 	geom_bar(stat = "identity") +
-	theme(axis.title.x = element_blank(), 
-			axis.text.x = element_text(size = 10, angle = 90, hjust = 1)) + 
+	theme(axis.title.x = element_blank(),
+			axis.text.x = element_text(size = 10, angle = 90, hjust = 1)) +
 	scale_fill_manual(values = colours) +
-	facet_grid(~GroupID, scales = 'free', space = 'free')+
-	ylab("Relative Abundance (Families > 2%) \n")
-indiv
+	ylab(paste("Relative Abundance (",rank,")\n",sep=''))
 
-# Plot averages
-avg = ggplot(abund_fam_means, aes(x = GroupID, y = Average, fill = Family)) +
-	geom_bar(stat = "identity") +
-	theme(axis.title.x = element_blank(), 
-			axis.text.x = element_text(size = 10)) +
-	scale_fill_manual(values = colours) +
-	ylab("Relative Abundance (Families > 2%) \n")
-avg
-
-fecal_rel %>% 
-	tax_glom(taxrank = "Family") %>%
-	psmelt() %>%
-	filter(Abundance > 0.02) %>%
-	arrange(Family)-> abunds
-
+	return(indiv)
+}
