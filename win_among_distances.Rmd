@@ -1,0 +1,55 @@
+Identifying which sample a set of reads comes from
+==================================================
+
+```{r}
+library(tidyr)
+library(pipeR)
+library(dplyr)
+library(ggplot2)
+```
+
+Dummy Data Set
+--------------
+
+```{r}
+metadat = data.frame(Sample = c(rep('A',2),rep('B',3),rep('C',4)),
+						Extraction = c(1:2,1:3,1:4),
+						ID = paste('S',as.character(1:9),sep=''))
+						
+distmat = matrix(rnorm(81),nrow = 9, ncol = 9)		# I know this sucks
+distmat[lower.tri(distmat)] = NA
+rownames(distmat) = metadat$ID
+colnames(distmat) = metadat$ID
+```
+
+Make a useable data frame
+
+```{r}
+distmat %>>%
+	{data.frame(ID1 = metadat$ID,.)} %>%
+	gather(ID2,Dist,2:(ncol(distmat)+1),na.rm=TRUE) -> distlong
+distlong$Sample1 = inner_join(distlong,metadat, by = c('ID1' = 'ID'))$Sample
+distlong$Sample2 = inner_join(distlong,metadat, by = c('ID2' = 'ID'))$Sample
+head(distlong)
+
+# Indicate whether a distance is within-sample
+distlong$Within = distlong$Sample1 == distlong$Sample2
+
+# Remove the diagonal elements
+distlong = subset(distlong, ID1 != ID2)
+
+head(distlong)
+```
+
+Make a boxplot
+
+```{r}
+p = ggplot(distlong, aes(x = Within, y = Dist)) +
+	geom_boxplot()
+p
+
+p = ggplot(distlong) +
+	geom_density(aes(x = Dist, colour = Within))
+p
+```
+
