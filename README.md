@@ -16,3 +16,8 @@ Snippets
 	it's a pain. Here's an example.
 * [unequal_variance_glmm.Rmd](./unequal_variance_glmm.Rmd)
 	* Accounting for unequal variance in groups in a mixed-effects model.
+* [win_among_distances.Rmd](./win_among_distances.Rmd)
+	* Chunks distances in a distance matrix so into within-group and among-group
+	distances
+* [format_fastq.py](./format_fastq.py)
+	* converts Basespace fastqs to Casava fastqs
