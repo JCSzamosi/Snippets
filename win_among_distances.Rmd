@@ -1,5 +1,5 @@
-Identifying which sample a set of reads comes from
-==================================================
+Looking at within- vs among-group distances
+===========================================
 
 ```{r}
 library(tidyr)
@@ -23,6 +23,7 @@ colnames(distmat) = metadat$ID
 ```
 
 Make a useable data frame
+-------------------------
 
 ```{r}
 distmat %>>%
@@ -42,6 +43,7 @@ head(distlong)
 ```
 
 Make a boxplot
+--------------
 
 ```{r}
 p = ggplot(distlong, aes(x = Within, y = Dist)) +
