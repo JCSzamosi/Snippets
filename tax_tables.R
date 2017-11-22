@@ -46,13 +46,12 @@ taxa_other_df = function(phyl_rel, rank, cutoff){
 }
 
 
-taxa_plot = function(taxa_df,rank,colours = NULL,meta = NULL,
+taxa_plot = function(taxa_df,rank,colours = NULL,
 					 sample = 'X.SampleID', abund = 'Abundance'){
 	## taxa_df:	The data frame produced by taxa_other_df()
 	## rank: The taxonomic rank to plot by
 	## colours:	A character vector with the right number of colours. If you
 	## don't provide one it uses my 21-colour vector, which might not be enough
-	## meta: a character vector of metadata columns to order the bars by. If
 	## left NULL, the bars will be ordered alphabetically by sample ID.
 	## sample: the name of the sample ID column.
 	## abund: the name of the abundance column
@@ -66,10 +65,10 @@ taxa_plot = function(taxa_df,rank,colours = NULL,meta = NULL,
 	}
 
 	# Plot individual samples
-	if (!is.null(meta)){
-		taxa_df %>%
-			arrange_(meta) -> taxa_df
-	}
+	#if (!is.null(meta)){
+	#	taxa_df %>%
+	#		arrange_(meta) -> taxa_df
+	#}
 
 	indiv = ggplot(taxa_df, aes_string(x = sample, y = abund, fill = rank)) +
 	geom_bar(stat = "identity") +
