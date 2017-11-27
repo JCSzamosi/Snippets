@@ -11,7 +11,7 @@ taxa_other_df = function(phyl_rel, rank, cutoff){
 	require(dplyr)
 
 	# Glom to the correct taxonomic rank
-	phyl_glommed = tax_glom(phyl_rel, taxrank = rank)
+	phyl_glommed = tax_glom(phyl_rel, taxrank = rank, na.rm=FALSE)
 
 	# Set all counts < 2% to zero
 	otu_table(phyl_glommed)[otu_table(phyl_glommed) < cutoff] = 0
