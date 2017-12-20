@@ -28,7 +28,7 @@ prop_tax_row = function(taxrow){
 	}
 }
 
-prop_tax_down(taxtab){
+prop_tax_down = function(taxtab){
     # taxtab: a taxonomy table to propogate taxa down in
     
     ## I don't know why I can't use apply for this, but I can't.
