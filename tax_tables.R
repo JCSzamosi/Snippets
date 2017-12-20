@@ -2,27 +2,41 @@ remain = function(x){
 	1-sum(x)
 }
 
-prop_tax_down = function(taxrow, rank = 'Genus'){
-	### THIS DOESN'T WORK YET
-
+prop_tax_row = function(taxrow){
 	## taxrow: a row from a tax_table of a phyloseq object
-	## rank: the current taxonomic rank. Best to leave the default if calling
-	## manually.
 
-	ranks = c('Genus','Family','Order','Class','Phylum')
-	pos = match(rank,ranks)
-	nrank = ranks[pos+1]
-
-	if (is.na(taxrow[1,rank])){
-		if (is.na(taxrow[1,nrank]))
-			taxrow[1,rank] = prop_tax_down(taxrow,nrank)
-	} else {
-		assn = tolower(substring(rank,1,1))
-		assn = paste(assn,taxrow[1,rank],sep='_')
+	ranks = c('Phylum','Class','Order','Family','Genus')
+    
+	hasNA = FALSE
+	for (i in 1:length(ranks)){
+	    
+	    if (!is.na(taxrow[,ranks[i]])){
+	        tax = taxrow[,ranks[i]]
+	    } else {
+	        hasNA = TRUE
+	        break
+	    }
 	}
+	
+	if (!hasNA){
+		return (taxrow)
+	} else {
+		init = tolower(substring(ranks[i-1],1,1))
+		assn = paste(init,tax,sep = '_')
+		taxrow[,ranks[i:length(ranks)]] = assn
+		return(taxrow)
+	}
+}
 
-
-
+prop_tax_down(taxtab){
+    # taxtab: a taxonomy table to propogate taxa down in
+    
+    ## I don't know why I can't use apply for this, but I can't.
+    for (r in 1:nrow(taxtab)){
+        taxtab[r,] = prop_tax_row(taxtab[r,])
+    }
+    
+    return(taxtab)
 }
 
 taxa_other_df = function(phyl_rel, rank, cutoff){
@@ -33,6 +47,8 @@ taxa_other_df = function(phyl_rel, rank, cutoff){
 	require(phyloseq)
 	require(dplyr)
 
+	# Propogate taxonomic assignments down the tree
+    tax_table(phyl_rel) = prop_tax_down(phyl_rel)
 
 	# Glom to the correct taxonomic rank
 	phyl_glommed = tax_glom(phyl_rel, taxrank = rank, na.rm=FALSE)
