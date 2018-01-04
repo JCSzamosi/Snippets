@@ -6,10 +6,10 @@ prop_tax_row = function(taxrow){
 	## taxrow: a row from a tax_table of a phyloseq object
 
 	ranks = c('Phylum','Class','Order','Family','Genus')
-    
+
 	hasNA = FALSE
 	for (i in 1:length(ranks)){
-	    
+
 	    if (!is.na(taxrow[,ranks[i]])){
 	        tax = taxrow[,ranks[i]]
 	    } else {
@@ -17,7 +17,7 @@ prop_tax_row = function(taxrow){
 	        break
 	    }
 	}
-	
+
 	if (!hasNA){
 		return (taxrow)
 	} else {
@@ -30,12 +30,12 @@ prop_tax_row = function(taxrow){
 
 prop_tax_down = function(taxtab){
     # taxtab: a taxonomy table to propogate taxa down in
-    
+
     ## I don't know why I can't use apply for this, but I can't.
     for (r in 1:nrow(taxtab)){
         taxtab[r,] = prop_tax_row(taxtab[r,])
     }
-    
+
     return(taxtab)
 }
 
@@ -48,10 +48,10 @@ taxa_other_df = function(phyl_rel, rank, cutoff){
 	require(dplyr)
 
 	# Propogate taxonomic assignments down the tree
-    tax_table(phyl_rel) = prop_tax_down(phyl_rel)
+    tax_table(phyl_rel) = prop_tax_down(tax_table(phyl_rel))
 
 	# Glom to the correct taxonomic rank
-	phyl_glommed = tax_glom(phyl_rel, taxrank = rank, na.rm=FALSE)
+	phyl_glommed = tax_glom(phyl_rel, taxrank = rank)
 
 	# Set all counts < 2% to zero
 	otu_table(phyl_glommed)[otu_table(phyl_glommed) < cutoff] = 0
