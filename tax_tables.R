@@ -96,12 +96,16 @@ taxa_plot = function(taxa_df,rank,colours = NULL,
 	## sample: the name of the sample ID column.
 	## abund: the name of the abundance column
 
+	require(ggplot2)
+
 	# Pick colours
 	if (is.null(colours)){
-		colours = c("#4f8579","#783fcc","#69d24d","#cb4bbd","#c6dc46","#542871",
-					"#78d792","#cc4472","#83d7d0","#d44d33","#676fcd","#ceb854",
-					"#403d57","#b97839","#84a4cb","#588038","#c68ac4","#48472a",
-					"#c9c39c","#6e2b34","#c78889")
+		colours = c('grey69',"#4f8579","#783fcc","#69d24d","#cb4bbd","#c6dc46",
+					"#542871","#78d792","#cc4472","#83d7d0","#d44d33","#676fcd",
+					"#ceb854","#403d57","#b97839","#84a4cb","#588038","#c68ac4",
+					"#48472a","#c9c39c","#6e2b34","#c78889")
+	} else {
+		colours = c('grey69',colours)
 	}
 
 	# Plot individual samples
