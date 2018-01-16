@@ -60,7 +60,20 @@ taxa_other_df = function(phyl_rel, rank, cutoff){
 	phyl_glommed %>%
 		filter_taxa(function(x) sum(x) > 0, prune = TRUE) %>%
 		psmelt() %>%
-		arrange_(rank) -> abunds
+		arrange_(rank) %>%
+		data.frame() -> abunds
+
+	# Order the rank by mean abundance
+
+	abunds %>%
+		group_by(UQ(sym(rank))) %>%
+		summarize(Mean = mean(Abundance)) %>%
+		data.frame() -> mean_abunds
+
+	lev_ord = levels(mean_abunds[,rank])
+	lev_ord = lev_ord[order(mean_abunds$Mean)]
+
+	abunds[,rank] = factor(abunds[,rank], levels = lev_ord)
 
 	# List all the metadata columns so that they are included in the data frame
 	metacols = names(abunds)[4:(match('Rank1',names(abunds))-1)]
@@ -79,7 +92,7 @@ taxa_other_df = function(phyl_rel, rank, cutoff){
 	newdf[,taxcols] = abunds[,taxcols]
 	newdf = rbind(as.data.frame(others),
 				as.data.frame(newdf))
-	newdf[,rank] = factor(newdf[,rank], levels = unique(newdf[,rank]))
+	newdf[,rank] = factor(newdf[,rank], levels = c('Other',lev_ord))
 
 	return(newdf)
 
@@ -108,17 +121,17 @@ taxa_plot = function(taxa_df,rank,colours = NULL,
 		colours = c('grey69',colours)
 	}
 
-	# Plot individual samples
-	#if (!is.null(meta)){
-	#	taxa_df %>%
-	#		arrange_(meta) -> taxa_df
-	#}
+	# Make sure the x axis is categorical
+	taxa_df[,sample] = factor(taxa_df[,sample])
 
 	indiv = ggplot(taxa_df, aes_string(x = sample, y = abund, fill = rank)) +
 	geom_bar(stat = "identity") +
 	theme(axis.title.x = element_blank(),
-			axis.text.x = element_text(size = 10, angle = 90, hjust = 1)) +
-	scale_fill_manual(values = colours) +
+			axis.text.x = element_text(size = 10,
+									   angle = 90,
+									   hjust = 1,
+									   vjust = 0.5)) +
+	scale_fill_manual(values = colours, guide = guide_legend(reverse = TRUE)) +
 	ylab(paste("Relative Abundance (",rank,")\n",sep=''))
 
 	return(indiv)
