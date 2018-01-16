@@ -46,6 +46,7 @@ taxa_other_df = function(phyl_rel, rank, cutoff){
 
 	require(phyloseq)
 	require(dplyr)
+	require(rlang)
 
 	# Propogate taxonomic assignments down the tree
     tax_table(phyl_rel) = prop_tax_down(tax_table(phyl_rel))
